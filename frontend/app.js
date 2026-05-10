@@ -1,19 +1,17 @@
 'use strict';
 
-const SPEAK_TEXT = {
-  'es-ES': 'Hola, soy tu asistente de noticias tecnológicas.',
-  'en-US': 'Hello, I am your technology news assistant.',
-};
+const BACKEND_URL = 'http://localhost:8000';
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const langSelect   = document.getElementById('lang-select');
-const btnMic       = document.getElementById('btn-mic');
-const btnSpeak     = document.getElementById('btn-speak');
-const resultArea   = document.getElementById('result');
-const errorBanner  = document.getElementById('error-banner');
-const compatWarn   = document.getElementById('compat-warning');
+const langSelect  = document.getElementById('lang-select');
+const btnMic      = document.getElementById('btn-mic');
+const btnSpeak    = document.getElementById('btn-speak');
+const resultArea  = document.getElementById('result');
+const errorBanner = document.getElementById('error-banner');
+const compatWarn  = document.getElementById('compat-warning');
+const statusBar   = document.getElementById('status-bar');
 
 let recognition = null;
 let isListening  = false;
@@ -28,9 +26,14 @@ function clearError() {
   errorBanner.classList.remove('visible');
 }
 
+function setStatus(msg) {
+  statusBar.textContent = msg;
+  statusBar.classList.toggle('visible', msg !== '');
+}
+
 function checkCompatibility() {
-  const noSpeechRec  = !SpeechRecognition;
-  const noSpeechSyn  = !window.speechSynthesis;
+  const noSpeechRec = !SpeechRecognition;
+  const noSpeechSyn = !window.speechSynthesis;
 
   if (noSpeechRec || noSpeechSyn) {
     compatWarn.classList.add('visible');
@@ -45,6 +48,40 @@ function checkCompatibility() {
   }
 }
 
+async function sendToBackend(texto) {
+  setStatus('Procesando...');
+  try {
+    const response = await fetch(`${BACKEND_URL}/echo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto, idioma: langSelect.value }),
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    speakText(data.texto, data.idioma);
+  } catch {
+    setStatus('');
+    showError('No se pudo conectar con el servidor.');
+  }
+}
+
+function speakText(texto, idioma) {
+  if (!window.speechSynthesis) return;
+  setStatus('Leyendo...');
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = idioma;
+  utterance.onend = () => setStatus('');
+  utterance.onerror = () => {
+    setStatus('');
+    showError('Error al reproducir la síntesis de voz.');
+  };
+  window.speechSynthesis.speak(utterance);
+}
+
 function buildRecognition() {
   if (!SpeechRecognition) return null;
 
@@ -57,15 +94,17 @@ function buildRecognition() {
     const transcript = event.results[0][0].transcript;
     resultArea.value = transcript;
     clearError();
+    sendToBackend(transcript);
   };
 
   rec.onerror = (event) => {
     stopListening();
+    setStatus('');
     const messages = {
-      'not-allowed':     'Permiso de micrófono denegado. Permite el acceso en la barra de dirección.',
-      'no-speech':       'No se detectó audio. Habla más cerca del micrófono e inténtalo de nuevo.',
-      'audio-capture':   'No se encontró micrófono. Conecta uno e inténtalo de nuevo.',
-      'network':         'Error de red al procesar el audio.',
+      'not-allowed':   'Permiso de micrófono denegado. Permite el acceso en la barra de dirección.',
+      'no-speech':     'No se detectó audio. Habla más cerca del micrófono e inténtalo de nuevo.',
+      'audio-capture': 'No se encontró micrófono. Conecta uno e inténtalo de nuevo.',
+      'network':       'Error de red al procesar el audio.',
     };
     showError(messages[event.error] || `Error de reconocimiento: ${event.error}`);
   };
@@ -87,6 +126,7 @@ function startListening() {
   isListening = true;
   btnMic.classList.add('listening');
   btnMic.textContent = '⏹ Detener';
+  setStatus('Escuchando...');
 }
 
 function stopListening() {
@@ -102,32 +142,23 @@ function stopListening() {
 btnMic.addEventListener('click', () => {
   if (isListening) {
     stopListening();
+    setStatus('');
   } else {
     startListening();
   }
 });
 
 btnSpeak.addEventListener('click', () => {
-  if (!window.speechSynthesis) return;
-
-  window.speechSynthesis.cancel();
-
-  const utterance = new SpeechSynthesisUtterance(SPEAK_TEXT[langSelect.value]);
-  utterance.lang  = langSelect.value;
-
-  btnSpeak.disabled = true;
-  utterance.onend = () => { btnSpeak.disabled = false; };
-  utterance.onerror = () => {
-    btnSpeak.disabled = false;
-    showError('Error al reproducir la síntesis de voz.');
-  };
-
-  window.speechSynthesis.speak(utterance);
+  const texto = resultArea.value.trim();
+  if (!texto) return;
+  clearError();
+  speakText(texto, langSelect.value);
 });
 
 langSelect.addEventListener('change', () => {
   if (isListening) stopListening();
   clearError();
+  setStatus('');
 });
 
 checkCompatibility();
