@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import settings
+from app.routes.news import router as news_router
 
 app = FastAPI(
     title="Asistente de Noticias API",
@@ -16,6 +17,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type"],
 )
+
+
+app.include_router(news_router)
 
 
 @app.get("/health")
