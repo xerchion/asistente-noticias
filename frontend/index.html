@@ -3,10 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Asistente de Noticias</title>
+  <title>Asistente de Noticias Tecnológicas</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Asistente de Noticias</h1>
-  <!-- Placeholder — implementación en Fase 1 -->
+  <main class="container">
+    <h1>Asistente de Noticias Tecnológicas</h1>
+
+    <div id="compat-warning"></div>
+
+    <div class="lang-row">
+      <label for="lang-select">Idioma:</label>
+      <select id="lang-select">
+        <option value="es-ES">Español (es-ES)</option>
+        <option value="en-US">English (en-US)</option>
+      </select>
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-mic" class="btn btn-mic">🎤 Micrófono</button>
+      <button id="btn-speak" class="btn btn-speak">🔊 Altavoz</button>
+    </div>
+
+    <textarea
+      id="result"
+      readonly
+      placeholder="Aquí aparecerá lo que digas..."
+    ></textarea>
+
+    <div id="error-banner" role="alert"></div>
+  </main>
+
+  <script src="app.js"></script>
 </body>
 </html>
