@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.config import settings
 
@@ -19,4 +20,14 @@ app.add_middleware(
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "fase": 2}
+
+
+class EchoRequest(BaseModel):
+    texto: str
+    idioma: str
+
+
+@app.post("/echo")
+async def echo(body: EchoRequest) -> EchoRequest:
+    return body
