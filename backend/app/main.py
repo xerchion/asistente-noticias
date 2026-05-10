@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.routes.news import router as news_router
+from app.routes.news_unified import router as news_unified_router
 
 app = FastAPI(
     title="Asistente de Noticias API",
@@ -20,6 +21,7 @@ app.add_middleware(
 
 
 app.include_router(news_router)
+app.include_router(news_unified_router)
 
 
 @app.get("/health")
